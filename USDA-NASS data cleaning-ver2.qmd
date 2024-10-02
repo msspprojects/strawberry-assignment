@@ -1,50 +1,13 @@
 ---
-title: "Stawberries 2"
-author: MA615
+title: "Strawberries Dataset EDA"
+author: Suheng Yao
 date: 2024 Sept 30
-format: html
+format: pdf
 editor: visual
 ---
 
-# Preparing data for analysis
 
-Acquire, explore, clean & structure, EDA
-
-### Data cleaning and organization
-
-["An introduction to data cleaning with R" by Edwin de Jonge and Mark van der Loo](https://cran.r-project.org/doc/contrib/de_Jonge+van_der_Loo-Introduction_to_data_cleaning_with_R.pdf)
-
-["Problems, Methods, and Challenges in Comprehensive Data Cleansing" by Heiko Müller and Johann-Christoph Freytag](https://www.researchgate.net/profile/Heiko-Mueller/publication/228929938_Problems_methods_and_challenges_in_comprehensive_data_cleansing/links/09e415101b58541e2c000000/Problems-methods-and-challenges-in-comprehensive-data-cleansing.pdf)
-
-## Strawberries
-
-**Questions**
-
--   Where they are grown? By whom?
-
--   Are they really loaded with carcinogenic poisons?
-
--   Are they really good for your health? Bad for your health?
-
--   Are organic strawberries carriers of deadly diseases?
-
--   When I go to the market should I buy conventional or organic strawberries?
-
--   Do Strawberry farmers make money?
-
--   How do the strawberries I buy get to my market?
-
-## The data
-
-The data set for this assignment has been selected from:
-
-[[USDA_NASS_strawb_2024SEP25](https://quickstats.nass.usda.gov) The data have been stored on NASS here: [USDA_NASS_strawb_2024SEP25](https://quickstats.nass.usda.gov/results/28141CE5-7429-36C3-A385-33ACC8030763)
-
-and has been stored on the blackboard as strawberries25_v3.csv.
-
-## read and explore the data
-
-Set-up
+## Read and Explore the Data
 
 ```{r}
 #| label: load libraries and set options
@@ -55,14 +18,16 @@ Set-up
 library(knitr)  
 library(kableExtra)
 library(tidyverse)
+library(ggplot2)
 
 
 ```
 
-Read the data and take a first look
+We first read in the data and have an overview of the data:
 
 ```{r}
-#| label: read data - glimpse 
+#| label: read data - glimpse
+#| message: false 
 
 strawberry <- read_csv("strawberries25_v3.csv", col_names = TRUE)
 
