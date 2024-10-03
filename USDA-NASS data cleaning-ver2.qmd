@@ -6,7 +6,6 @@ format: pdf
 editor: visual
 ---
 
-
 ## Read and Explore the Data
 
 ```{r}
@@ -34,9 +33,32 @@ strawberry <- read_csv("strawberries25_v3.csv", col_names = TRUE)
 glimpse(strawberry)
 ```
 
-I have 12699 rows and 21 columns.
+We got 12699 rows and 21 columns.
 
-All I can see from the glimpse is I have date, location, values and coefficients of variation.
+## Data Cleaning
+
+We can check for NA values and the columns with exact same values:
+```{r}
+# Identify columns with only NA values and remove them
+na_num <- colSums(is.na(strawberry))
+print(na_num)
+strawberry <- strawberry[, na_num < nrow(strawberry)]
+```
+Since Week Ending, Zip Code, Region and Watershed contain only NA values, those four columns have to be removed.
+
+```{r}
+# Identify columns with exact same values and remove them
+col_same <- sapply(strawberry, function(x) length(unique(x)) == 1)
+print(col_same)
+strawberry <- strawberry[, !col_same]
+```
+Since watershed_code and Commodity are the columns with the same values, they also have to be removed.
+
+```{r}
+glimpse(strawberry)
+```
+Now, there are 12669 rows and 15 variables.
+
 
 Examine the data. How is it organized?
 
