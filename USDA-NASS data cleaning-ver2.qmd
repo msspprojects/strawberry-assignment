@@ -18,6 +18,7 @@ library(knitr)
 library(kableExtra)
 library(tidyverse)
 library(ggplot2)
+library(tidyr)
 
 
 ```
@@ -97,21 +98,29 @@ rm(state_all, state_all1)
 ### Separate Composite Columns
 
 Since variable "Data Item" contains too much information, we plan to separate the information in this column into a few new columns:
+```{r}
+unique(strawberry$Operation2)
+```
 
 ```{r}
 #| label: split Data Item
 
-# Split the Data Item variable
-strawberry <- strawberry |>
-  separate_wider_delim( cols = `Data Item`,
-                        delim = ",",
-                        names = c("Fruit",
-                                 "Category",
-                                 "Item",
-                                 "Metric"),
-                        too_many = "error",
-                        too_few = "align_start"
-                       )
+# Step1: Split the Data Item variable first based on commas
+strawberry <- strawberry %>%
+  separate(`Data Item`, into = c("Fruit", "Category1", "Category2"), 
+           sep = ",", fill = "right", extra = "merge")
+
+# Step2: Split the column based on hyphen
+strawberry <- strawberry %>%
+  separate(Category1, into = c("Type", "Info1"), 
+           sep = "-", fill = "right", extra = "merge") %>%
+  separate(Category2, into = c("Type2", "Info2"),
+            sep = "-", fill = "right", extra = "merge")
+
+# Step3: Separate Info1 and Info2 by measurement information
+strawberry <- strawberry %>%
+  separate(Type, into = c("Operation1", "Measurement1"), sep = "MEASURED IN ", fill = "right", extra = "merge") %>%
+  separate(Type2, into = c("Operation2", "Measurement2"), sep = "MEASURED IN ", fill = "right", extra = "merge")
 
 # Trim the leading space
 strawberry$Category <- str_trim(strawberry$Category, side = "both")
@@ -140,6 +149,11 @@ strw_chem <- strawberry |> slice(-1*spr)  ## too soon
 
 
   
+```
+```{r}
+unique(strawberry$Category)
+unique(strawberry$Item)
+unique(strawberry$Metric)
 ```
 
 ## now examine the rest of the columns
