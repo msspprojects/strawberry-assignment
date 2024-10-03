@@ -59,160 +59,68 @@ glimpse(strawberry)
 ```
 Now, there are 12669 rows and 15 variables.
 
+Since the "State ANSI", "County ANSI", "Value" and "CV (%)" are all numeric values, but they were treated as character values in this data, it is necessary to convert them into numeric value:
+```{r, warning=FALSE}
+# convert two columns to numeric
+strawberry$`State ANSI` <- as.numeric(strawberry$`State ANSI`)
+strawberry$`County ANSI` <- as.numeric(strawberry$`County ANSI`)
+strawberry$Value <- as.numeric(strawberry$Value)
+strawberry$`CV (%)` <- as.numeric(strawberry$`CV (%)`)
+```
 
-Examine the data. How is it organized?
+Since the "Geo Level", "Ag District", "State" and "County" are all good indicators of the group, it is better to convert them into factor data type:
+```{r}
+# convert four columns to factor type
+cols_convert <- c("Geo Level", "State", "Ag District")
+strawberry[cols_convert] <- lapply(strawberry[cols_convert], as.factor)
+```
+
+
+### Examine The Structure of the Data
 
 ```{r}
 #| label: explore organization 1 
 
 
-## Is every line associated with a state?
+## Check if every row is associated with a state
 
 state_all <- strawberry |> distinct(State)
 
 state_all1 <- strawberry |> group_by(State) |> count()
 
-## every row is associated with a state
-
 if(sum(state_all1$n) == dim(strawberry)[1]){print("Yes every row in the data is associated with a state.")}
 
-## rm(state_all, state_all1)
+rm(state_all, state_all1)
 
 ```
 
-## remove columns with a single value in all rows
+### Separate Composite Columns
+
+Since variable "Data Item" contains too much information, we plan to separate the information in this column into a few new columns:
 
 ```{r}
-#|label: function def - drop 1-item columns
+#| label: split Data Item
 
-drop_one_value_col <- function(df){   ## takes whole dataframe
-drop <- NULL  
-
-## test each column for a single value
-for(i in 1:dim(df)[2]){     
-if((df |> distinct(df[,i]) |> count()) == 1){
-drop = c(drop, i)
-} }
-
-## report the result -- names of columns dropped
-## consider using the column content for labels 
-## or headers 
-
-if(is.null(drop)){return("none")}else{
-
-   print("Columns dropped:")
-   print(colnames(df)[drop])
-   strawberry <- df[, -1*drop]
-   }
-}
-
-
-## use the function
-
-strawberry <- drop_one_value_col(strawberry)
-
-drop_one_value_col(strawberry)
-
-```
-
-To get better look at the data, look at California.
-
-```{r}
-#| label: explore California only
-
-calif <- strawberry |>  filter(State=="CALIFORNIA")
-
-## look at the unique values in the "Program" column
-
-## in the consol
-## unique(calif$Program)
-
-## and look at the data selection widget on 
-##      https://quickstats.nass.usda.gov
-
-## You can see that CENSUS AND SURVEY are the two sources
-## of data. (Why? What's the differences?).  So, let's see
-## they differ.
-
-calif_census <- calif |> filter(Program=="CENSUS")
-
-calif_survey  <- calif |>  filter(Program=="SURVEY")
-
-### 
-
-
-##calif_survey <- strawberry |> select(Year, Period, `Data Item`, Value)
-
-
-```
-
-Explore California to understand the census and survey
-
-```{r}
-#| label: explore Calif census and survey 
-
-## no assignment -- just exploring
-
-drop_one_value_col(calif_census)
-
-drop_one_value_col(calif_survey)
-
-
-
-```
-
-Conclusions from California data exploration.
-
-## Now return to the entire data set.
-
-take the lessons learned by examinging the California data
-
-Two strategies -- columns first, rows first
-
-Split the census data from the survey data. drop single value columns
-
-## separate composite columns
-
-### `Data Item` into (fruit, category, item)
-
-```{r}
-#|label: split Data Item
-
-  strawberry <- strawberry |>
-  separate_wider_delim(  cols = `Data Item`,
-                         delim = ",",
-                         names = c("Fruit",
+# Split the Data Item variable
+strawberry <- strawberry |>
+  separate_wider_delim( cols = `Data Item`,
+                        delim = ",",
+                        names = c("Fruit",
                                  "Category",
                                  "Item",
                                  "Metric"),
-                         too_many = "error",
-                         too_few = "align_start"
+                        too_many = "error",
+                        too_few = "align_start"
                        )
 
-## Use too_many and too_few to set up the separation operation.
-
-```
-
-There is a problem you have to fix -- a leading space.
-
-```{r}
-#|label: fix the leading space
-
- # note
-strawberry$Category[1]
-# strawberry$Item[2]
-# strawberry$Metric[6]
-# strawberry$Domain[1]
-## 
-## trim white space 
-
+# Trim the leading space
 strawberry$Category <- str_trim(strawberry$Category, side = "both")
 strawberry$Item <- str_trim(strawberry$Item, side = "both")
 strawberry$Metric <- str_trim(strawberry$Metric, side = "both")
-
 ```
+The "Data Item" column has been splitted into "Fruit", "Category", "Item" and "Metric".
 
-## now exam the Fruit column -- find hidden sub-columns
+### Examine the Fruit Column -- Find Hidden Sub-columns
 
 ```{r}
 
