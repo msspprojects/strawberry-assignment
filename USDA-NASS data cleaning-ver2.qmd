@@ -98,9 +98,6 @@ rm(state_all, state_all1)
 ### Separate Composite Columns
 
 Since variable "Data Item" contains too much information, we plan to separate the information in this column into a few new columns:
-```{r}
-unique(strawberry$`Product Details`)
-```
 
 ```{r}
 #| label: split Data Item
@@ -174,98 +171,33 @@ strawberry$Measurement <- str_trim(strawberry$Measurement, side = "both")
 ```
 The "Data Item" column has been splitted into "Fruit", "Operation", "Product Type", "Product Details" and "Measurement".
 
-### Examine the Fruit Column -- Find Hidden Sub-columns
 
+Now, since the Domain and Domain Category columns have redundant and complex information, we consider split and combine the information in those two columns:
 ```{r}
-
-unique(strawberry$Fruit)
-
-## generate a list of rows with the production and price information
-
-spr <- which((strawberry$Fruit=="STRAWBERRIES - PRODUCTION") | (strawberry$Fruit=="STRAWBERRIES - PRICE RECEIVED"))
-
-
-strw_prod_price <- strawberry |> slice(spr)
-
-
-## this has the census data, too
-
-strw_chem <- strawberry |> slice(-1*spr)  ## too soon
-
-
-  
-```
-```{r}
-unique(strawberry$Category)
-unique(strawberry$Item)
-unique(strawberry$Metric)
-```
-
-## now examine the rest of the columns
-
-Which ones need to be split?
-
-## split sales and chemicals into two dataframes
-
-(do this last after separating rows into separate data frames) (THEN rename the columns to correspond the analysis being done with the data frames)
-
-```{r}
-#|label: split srawberry into census and survey pieces
-
-strw_b_sales <- strawberry |> filter(Program == "CENSUS")
-
-strw_b_chem <- strawberry |> filter(Program == "SURVEY")
-
-nrow(strawberry) == (nrow(strw_b_chem) + nrow(strw_b_sales))
-
-## Move marketing-related rows in strw_b_chem 
-## to strw_b_sales
-
-
-```
-
-## plots
-
-```{r}
-#|label: plot 1
-
-plot1_data <- strawberry |> 
-  select(c(Year, State, Category, Value)) |> 
-  filter((Year == 2021) & (Category == "ORGANIC - OPERATIONS WITH SALES"))
-
-plot1_data$Value <- as.numeric(plot1_data$Value)
-
-plot1_data <- plot1_data |> arrange(desc(Value))
-
-ggplot(plot1_data, aes(x=reorder(State, -Value), y=Value)) + 
-  geom_bar(stat = "identity") + 
-  theme(axis.text.x=element_text(angle=45,hjust=1)) +
-  labs(x = "States", y = "Count",
-title ="Number of Organic Strawberry operations with Sales in 2021")
-
-
+unique(strawberry$Category2)
 ```
 
 ```{r}
-## plot 2
+#| label: Split and Transform Domain Category Variable and Domain Variable
 
-plot2_data <- strawberry |> 
-  select(c(Year, State, Category, Item, Value)) |> 
-  filter((Year == 2021) & 
-           (Category == "ORGANIC - SALES") & 
-           (Item == "MEASURED IN $") & 
-           (Value != "(D)"))
+# Step1: Split the Domain Category based on comma
+strawberry <- strawberry %>%
+  separate(`Domain Category`, into = c("Domain1", "Category1"), 
+           sep = ",", fill = "right", extra = "merge")
 
+# Step2: Focus on Domain1 column first, split it based on colon
+strawberry <- strawberry %>%
+  separate(Domain1, into = c("Domain2", "Category2"), 
+           sep = ":", fill = "right", extra = "merge")
 
-plot2_data$Value <- as.numeric(gsub(",", "", plot2_data$Value))
+# Step3: Combine the Domain and Domain2 column
+strawberry <- strawberry %>%
+  mutate(
+    Domain = coalesce(Domain, Domain2)
+  ) %>%
+  select(-Domain2)
 
-plot2_data <- plot1_data |> arrange(desc(Value))
-
-ggplot(plot2_data, aes(x=reorder(State, -Value), y=Value)) + 
-  geom_bar(stat = "identity") + 
-  theme(axis.text.x=element_text(angle=45,hjust=1)) +
-  labs(x = "States", y = "Sales",
-title ="Organic Strawberry Sales ($) in 2021")
-
+# Step4: Split Category2 column
 
 ```
+
