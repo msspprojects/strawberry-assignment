@@ -19,7 +19,7 @@ library(kableExtra)
 library(tidyverse)
 library(ggplot2)
 library(tidyr)
-
+library(stringr)
 
 ```
 
@@ -99,7 +99,7 @@ rm(state_all, state_all1)
 
 Since variable "Data Item" contains too much information, we plan to separate the information in this column into a few new columns:
 ```{r}
-unique(strawberry$Operation2)
+unique(strawberry$`Product Details`)
 ```
 
 ```{r}
@@ -110,24 +110,69 @@ strawberry <- strawberry %>%
   separate(`Data Item`, into = c("Fruit", "Category1", "Category2"), 
            sep = ",", fill = "right", extra = "merge")
 
-# Step2: Split the column based on hyphen
+# Step2: Split the Fruit column based on hyphen
 strawberry <- strawberry %>%
-  separate(Category1, into = c("Type", "Info1"), 
-           sep = "-", fill = "right", extra = "merge") %>%
-  separate(Category2, into = c("Type2", "Info2"),
-            sep = "-", fill = "right", extra = "merge")
+  separate(Fruit, into = c("Fruit", "Operation"), 
+           sep = "-", fill = "right", extra = "merge")
 
-# Step3: Separate Info1 and Info2 by measurement information
+# Step3: Separate Category1 column based on hyphen
 strawberry <- strawberry %>%
-  separate(Type, into = c("Operation1", "Measurement1"), sep = "MEASURED IN ", fill = "right", extra = "merge") %>%
-  separate(Type2, into = c("Operation2", "Measurement2"), sep = "MEASURED IN ", fill = "right", extra = "merge")
+  separate(Category1, into = c("Product Type", "Product Details"), 
+           sep = "-", fill = "right", extra = "merge")
 
-# Trim the leading space
-strawberry$Category <- str_trim(strawberry$Category, side = "both")
-strawberry$Item <- str_trim(strawberry$Item, side = "both")
-strawberry$Metric <- str_trim(strawberry$Metric, side = "both")
+# Step4: Separate Product Type column into Product Type and Measurement
+strawberry <- strawberry %>%
+  mutate(Measurement = ifelse(str_detect(`Product Type`, "MEASURED IN"), `Product Type`, NA_character_),
+    `Product Type` = ifelse(str_detect(`Product Type`, "MEASURED IN"), NA_character_, `Product Type`))
+
+# Step5: Separate Category2 column based on hyphen
+strawberry <- strawberry %>%
+  separate(Category2, into = c("Product Type1", "Product Details1"), 
+           sep = "-", fill = "right", extra = "merge")
+
+# Step6: Split the Product Type1 column to create another new column Measurement1
+strawberry <- strawberry %>%
+  separate(`Product Type1`, into = c("Product Type1", "Measurement1"), 
+           sep = ",", fill = "right", extra = "merge")
+
+# Step7: Put the measurement information in Product Type1 into Measurement column
+strawberry <- strawberry %>%
+  mutate(Measurement = ifelse(str_detect(`Product Type1`, "MEASURED IN| AVG"), `Product Type1`, Measurement),
+    `Product Type1` = ifelse(str_detect(`Product Type1`, "MEASURED IN| AVG"), NA_character_, `Product Type1`))
+
+# Step8: Split the Product Details1 column based on comma
+strawberry <- strawberry %>%
+  separate(`Product Details1`, into = c("Product Details1", "Measurement2"), 
+           sep = ",", fill = "right", extra = "merge")
+
+# Step9: Combine measurement2, measurement1 and measurement
+strawberry <- strawberry %>%
+  mutate(
+    Measurement = coalesce(Measurement, Measurement1, Measurement2)
+  ) %>%
+  select(-Measurement1, -Measurement2)
+
+# Step10: Combine Product Type and Product Type1, Product Details and Product Details1
+strawberry <- strawberry %>%
+  mutate(
+    `Product Type` = coalesce(`Product Type`, `Product Type1`)
+  ) %>%
+  select(-`Product Type1`)
+
+strawberry <- strawberry %>%
+  mutate(
+    `Product Details` = coalesce(`Product Details`, `Product Details1`)
+  ) %>%
+  select(-`Product Details1`)
+
+# Step11: Trim the leading space
+strawberry$Fruit <- str_trim(strawberry$Fruit, side = "both")
+strawberry$Operation <- str_trim(strawberry$Operation, side = "both")
+strawberry$`Product Type` <- str_trim(strawberry$`Product Type`, side = "both")
+strawberry$`Product Details` <- str_trim(strawberry$`Product Details`, side = "both")
+strawberry$Measurement <- str_trim(strawberry$Measurement, side = "both")
 ```
-The "Data Item" column has been splitted into "Fruit", "Category", "Item" and "Metric".
+The "Data Item" column has been splitted into "Fruit", "Operation", "Product Type", "Product Details" and "Measurement".
 
 ### Examine the Fruit Column -- Find Hidden Sub-columns
 
