@@ -173,11 +173,7 @@ The "Data Item" column has been splitted into "Fruit", "Operation", "Product Typ
 
 
 Now, since the Domain and Domain Category columns have redundant and complex information, we consider split and combine the information in those two columns:
-```{r}
-unique(strawberry$Category2)
-```
-
-```{r}
+```{r, warning=FALSE}
 #| label: Split and Transform Domain Category Variable and Domain Variable
 
 # Step1: Split the Domain Category based on comma
@@ -197,7 +193,59 @@ strawberry <- strawberry %>%
   ) %>%
   select(-Domain2)
 
-# Step4: Split Category2 column
+# Step4: Split Category2 column into three column
+strawberry <- strawberry %>%
+  mutate(
+    Acre_Info = case_when(
+      # Contains numbers --> Acre info
+      grepl("\\d+\\.?\\d+", Category2) ~ Category2, 
+      TRUE ~ NA_character_
+    ),
+    Organic_Status = case_when(
+      # "NOP USDA CERTIFIED" --> Organic Status
+      grepl("\\(NOP USDA CERTIFIED\\)", Category2) ~ Category2,
+      TRUE ~ NA_character_
+    ),
+    Fertilizer_Status = case_when(
+      # Rest are Fertilizer info
+      !grepl("\\d+\\.?\\d+", Category2) & !grepl("\\(NOP USDA CERTIFIED\\)", Category2) ~ Category2,  
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  select(-Category2)
+
+# Step5: Split Category1 column into two columns based on colon
+strawberry <- strawberry %>%
+  separate(Category1, into = c("Domain1", "Category1"), 
+           sep = ":", fill = "right", extra = "merge")
+
+# Step6: Combine the Domain1 column with Domain column
+strawberry <- strawberry %>%
+  mutate(
+    Domain = coalesce(Domain, Domain1)
+  ) %>%
+  select(-Domain1)
+
+# Step7: Split the Category1 column into two new columns
+strawberry <- strawberry %>%
+  # Remove the parentheses in each entry
+  mutate(Category1 = gsub("\\(|\\)", "", Category1)) %>%
+  separate(Category1, into = c("Chemical_Info", "Chemical_Product_Number"), sep = "=", extra = "merge") %>%
+  # Put the new columns next to Domain Column
+  relocate(Chemical_Info, Chemical_Product_Number, .after = Domain)
+
+# Step8: Trim the leading space in all newly created columns
+strawberry$Domain <- str_trim(strawberry$Domain, side = "both")
+
+strawberry$Chemical_Info <- str_trim(strawberry$Chemical_Info, side = "both")
+
+strawberry$Chemical_Product_Number <- str_trim(strawberry$Chemical_Product_Number, side = "both")
+
+strawberry$Acre_Info <- str_trim(strawberry$Acre_Info, side = "both")
+
+strawberry$Organic_Status <- str_trim(strawberry$Organic_Status, side = "both")
+
+strawberry$Fertilizer_Status<- str_trim(strawberry$Fertilizer_Status, side = "both")
 
 ```
 
