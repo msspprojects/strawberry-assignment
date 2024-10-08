@@ -67,6 +67,20 @@ strawberry$`State ANSI` <- as.numeric(strawberry$`State ANSI`)
 strawberry$`County ANSI` <- as.numeric(strawberry$`County ANSI`)
 strawberry$Value <- as.numeric(strawberry$Value)
 strawberry$`CV (%)` <- as.numeric(strawberry$`CV (%)`)
+library(dplyr)
+
+# Assuming your data frame is called `df` and the character column is called `column_name`
+df <- df %>%
+  mutate(column_name = case_when(
+    column_name == "H" ~ 99.5,
+    column_name == "L" ~ 0.05,
+    column_name == "D" ~ NA_real_,
+    TRUE ~ as.numeric(column_name)  # Convert numeric characters to numeric values
+  ))
+
+# Ensure the column is now numeric
+df$column_name <- as.numeric(df$column_name)
+
 ```
 
 Since the "Geo Level", "Ag District", "State" and "County" are all good indicators of the group, it is better to convert them into factor data type:
@@ -247,5 +261,11 @@ strawberry$Organic_Status <- str_trim(strawberry$Organic_Status, side = "both")
 
 strawberry$Fertilizer_Status<- str_trim(strawberry$Fertilizer_Status, side = "both")
 
+```
+
+### Deal with NA values in Value and CV
+```{r}
+strawberry_alabama <- strawberry %>%
+  filter(State == "ARIZONA")
 ```
 
