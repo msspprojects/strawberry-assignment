@@ -20,7 +20,7 @@ library(tidyverse)
 library(ggplot2)
 library(tidyr)
 library(stringr)
-
+library(dplyr)
 ```
 
 We first read in the data and have an overview of the data:
@@ -66,20 +66,14 @@ Since the "State ANSI", "County ANSI", "Value" and "CV (%)" are all numeric valu
 strawberry$`State ANSI` <- as.numeric(strawberry$`State ANSI`)
 strawberry$`County ANSI` <- as.numeric(strawberry$`County ANSI`)
 strawberry$Value <- as.numeric(strawberry$Value)
-strawberry$`CV (%)` <- as.numeric(strawberry$`CV (%)`)
-library(dplyr)
-
-# Assuming your data frame is called `df` and the character column is called `column_name`
-df <- df %>%
-  mutate(column_name = case_when(
-    column_name == "H" ~ 99.5,
-    column_name == "L" ~ 0.05,
-    column_name == "D" ~ NA_real_,
-    TRUE ~ as.numeric(column_name)  # Convert numeric characters to numeric values
+strawberry <- strawberry %>%
+  mutate(`CV (%)` = case_when(
+    `CV (%)` == "(H)" ~ 99.5,
+    `CV (%)` == "(L)" ~ 0.05,
+    `CV (%)` == "(D)" ~ NA_real_,
+    TRUE ~ as.numeric(`CV (%)`) # convert remaining values to numeric values
   ))
-
-# Ensure the column is now numeric
-df$column_name <- as.numeric(df$column_name)
+strawberry$`CV (%)` <- as.numeric(strawberry$`CV (%)`)
 
 ```
 
@@ -103,7 +97,8 @@ state_all <- strawberry |> distinct(State)
 
 state_all1 <- strawberry |> group_by(State) |> count()
 
-if(sum(state_all1$n) == dim(strawberry)[1]){print("Yes every row in the data is associated with a state.")}
+if(sum(state_all1$n) == dim(strawberry)[1])
+{print("Yes every row in the data is associated with a state.")}
 
 rm(state_all, state_all1)
 
@@ -133,8 +128,12 @@ strawberry <- strawberry %>%
 
 # Step4: Separate Product Type column into Product Type and Measurement
 strawberry <- strawberry %>%
-  mutate(Measurement = ifelse(str_detect(`Product Type`, "MEASURED IN"), `Product Type`, NA_character_),
-    `Product Type` = ifelse(str_detect(`Product Type`, "MEASURED IN"), NA_character_, `Product Type`))
+  mutate(Measurement = ifelse(str_detect(
+    `Product Type`, "MEASURED IN"), 
+    `Product Type`, NA_character_),
+    `Product Type` = ifelse(str_detect(
+      `Product Type`, "MEASURED IN"), 
+      NA_character_, `Product Type`))
 
 # Step5: Separate Category2 column based on hyphen
 strawberry <- strawberry %>%
@@ -148,8 +147,12 @@ strawberry <- strawberry %>%
 
 # Step7: Put the measurement information in Product Type1 into Measurement column
 strawberry <- strawberry %>%
-  mutate(Measurement = ifelse(str_detect(`Product Type1`, "MEASURED IN| AVG"), `Product Type1`, Measurement),
-    `Product Type1` = ifelse(str_detect(`Product Type1`, "MEASURED IN| AVG"), NA_character_, `Product Type1`))
+  mutate(Measurement = ifelse(str_detect(
+    `Product Type1`, "MEASURED IN| AVG"), 
+    `Product Type1`, Measurement),
+    `Product Type1` = ifelse(str_detect(
+      `Product Type1`, "MEASURED IN| AVG"), 
+      NA_character_, `Product Type1`))
 
 # Step8: Split the Product Details1 column based on comma
 strawberry <- strawberry %>%
@@ -163,7 +166,7 @@ strawberry <- strawberry %>%
   ) %>%
   select(-Measurement1, -Measurement2)
 
-# Step10: Combine Product Type and Product Type1, Product Details and Product Details1
+# Step10: Combine Product Type, Product Type1, Product Details, Product Details1
 strawberry <- strawberry %>%
   mutate(
     `Product Type` = coalesce(`Product Type`, `Product Type1`)
@@ -179,9 +182,12 @@ strawberry <- strawberry %>%
 # Step11: Trim the leading space
 strawberry$Fruit <- str_trim(strawberry$Fruit, side = "both")
 strawberry$Operation <- str_trim(strawberry$Operation, side = "both")
-strawberry$`Product Type` <- str_trim(strawberry$`Product Type`, side = "both")
-strawberry$`Product Details` <- str_trim(strawberry$`Product Details`, side = "both")
-strawberry$Measurement <- str_trim(strawberry$Measurement, side = "both")
+strawberry$`Product Type` <- str_trim(strawberry$`Product Type`, 
+                                      side = "both")
+strawberry$`Product Details` <- str_trim(strawberry$`Product Details`,
+                                         side = "both")
+strawberry$Measurement <- str_trim(strawberry$Measurement, 
+                                   side = "both")
 ```
 The "Data Item" column has been splitted into "Fruit", "Operation", "Product Type", "Product Details" and "Measurement".
 
@@ -222,7 +228,9 @@ strawberry <- strawberry %>%
     ),
     Fertilizer_Status = case_when(
       # Rest are Fertilizer info
-      !grepl("\\d+\\.?\\d+", Category2) & !grepl("\\(NOP USDA CERTIFIED\\)", Category2) ~ Category2,  
+      !grepl("\\d+\\.?\\d+", Category2) & 
+        !grepl("\\(NOP USDA CERTIFIED\\)", Category2) 
+      ~ Category2,  
       TRUE ~ NA_character_
     )
   ) %>%
@@ -244,7 +252,9 @@ strawberry <- strawberry %>%
 strawberry <- strawberry %>%
   # Remove the parentheses in each entry
   mutate(Category1 = gsub("\\(|\\)", "", Category1)) %>%
-  separate(Category1, into = c("Chemical_Info", "Chemical_Product_Number"), sep = "=", extra = "merge") %>%
+  separate(Category1, 
+           into = c("Chemical_Info", "Chemical_Product_Number"), 
+           sep = "=", extra = "merge") %>%
   # Put the new columns next to Domain Column
   relocate(Chemical_Info, Chemical_Product_Number, .after = Domain)
 
@@ -253,7 +263,9 @@ strawberry$Domain <- str_trim(strawberry$Domain, side = "both")
 
 strawberry$Chemical_Info <- str_trim(strawberry$Chemical_Info, side = "both")
 
-strawberry$Chemical_Product_Number <- str_trim(strawberry$Chemical_Product_Number, side = "both")
+strawberry$Chemical_Product_Number <-
+  str_trim(strawberry$Chemical_Product_Number, 
+           side = "both")
 
 strawberry$Acre_Info <- str_trim(strawberry$Acre_Info, side = "both")
 
@@ -263,9 +275,8 @@ strawberry$Fertilizer_Status<- str_trim(strawberry$Fertilizer_Status, side = "bo
 
 ```
 
-### Deal with NA values in Value and CV
+### Output the final CSV file
 ```{r}
-strawberry_alabama <- strawberry %>%
-  filter(State == "ARIZONA")
+write.csv(strawberry, "strawberry_cleaned.csv")
 ```
 
