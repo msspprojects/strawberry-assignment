@@ -39,12 +39,14 @@ We got 12699 rows and 21 columns.
 ## Data Cleaning
 
 We can check for NA values and the columns with exact same values:
+
 ```{r}
 # Identify columns with only NA values and remove them
 na_num <- colSums(is.na(strawberry))
 print(na_num)
 strawberry <- strawberry[, na_num < nrow(strawberry)]
 ```
+
 Since Week Ending, Zip Code, Region and Watershed contain only NA values, those four columns have to be removed.
 
 ```{r}
@@ -53,14 +55,17 @@ col_same <- sapply(strawberry, function(x) length(unique(x)) == 1)
 print(col_same)
 strawberry <- strawberry[, !col_same]
 ```
+
 Since watershed_code and Commodity are the columns with the same values, they also have to be removed.
 
 ```{r}
 glimpse(strawberry)
 ```
+
 Now, there are 12669 rows and 15 variables.
 
 Since the "State ANSI", "County ANSI", "Value" and "CV (%)" are all numeric values, but they were treated as character values in this data, it is necessary to convert them into numeric value:
+
 ```{r, warning=FALSE}
 # convert two columns to numeric
 strawberry$`State ANSI` <- as.numeric(strawberry$`State ANSI`)
@@ -78,12 +83,12 @@ strawberry$`CV (%)` <- as.numeric(strawberry$`CV (%)`)
 ```
 
 Since the "Geo Level", "Ag District", "State" and "County" are all good indicators of the group, it is better to convert them into factor data type:
+
 ```{r}
 # convert four columns to factor type
 cols_convert <- c("Geo Level", "State", "Ag District")
 strawberry[cols_convert] <- lapply(strawberry[cols_convert], as.factor)
 ```
-
 
 ### Examine The Structure of the Data
 
@@ -189,10 +194,11 @@ strawberry$`Product Details` <- str_trim(strawberry$`Product Details`,
 strawberry$Measurement <- str_trim(strawberry$Measurement, 
                                    side = "both")
 ```
+
 The "Data Item" column has been splitted into "Fruit", "Operation", "Product Type", "Product Details" and "Measurement".
 
-
 Now, since the Domain and Domain Category columns have redundant and complex information, we consider split and combine the information in those two columns:
+
 ```{r, warning=FALSE}
 #| label: Split and Transform Domain Category Variable and Domain Variable
 
@@ -276,7 +282,7 @@ strawberry$Fertilizer_Status<- str_trim(strawberry$Fertilizer_Status, side = "bo
 ```
 
 ### Output the final CSV file
+
 ```{r}
 write.csv(strawberry, "strawberry_cleaned.csv")
 ```
-
