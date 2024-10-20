@@ -132,3 +132,4 @@ hazards_df <- do.call(rbind, lapply(hazard_info, function(x) {
 }))
 knitr::kable(hazards_df, escape = FALSE)
 ```
+aaaa
