@@ -39,7 +39,7 @@ hazards_retriever<-function(index,result_json_object){
 
 chemical_vec<-c("azoxystrobin","flumioxazin")
 
-result_f<-get_pug_rest(identifier = "2,4-D, TRIISO. SALT", namespace = "name", domain = "compound",operation="classification", output = "JSON")
+result_f<-get_pug_rest(identifier = "Azadirachtin", namespace = "name", domain = "compound",operation="classification", output = "JSON")
 
 hazards_retriever(GHS_searcher(result_f),result_f)
 

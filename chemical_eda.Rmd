@@ -17,10 +17,39 @@ library(kableExtra)
 ```{r}
 # Read in the cleaned dataset and select records of California and Florida
 df <- read.csv("strawberry_cleaned.csv")
+
+# Find states that used chemicals in growing strawberry
+states_with_chemical_info <- df %>%
+  filter(!is.na(Chemical_Info)) %>%
+  distinct(State) %>%
+  pull(State)
+
+print(states_with_chemical_info)
+
+```
+Only California and Florida used chemicals when growing strawberries, we can filter out only those two states and compare the frequency of chemical used:
+```{r, warning=FALSE}
 df <- df %>%
   select(-1) %>%
   filter(State == "CALIFORNIA" | State == "FLORIDA")
+
+# Draw a bar plot comparing the frequency
+chem_state <- df %>%
+  group_by(State) %>%
+  summarise(Total_obs=n()) %>%
+  arrange(desc(Total_obs))
+print(chem_state)
+
+ggplot(chem_state, aes(x = State, y = Total_obs, fill = State)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = Total_obs), vjust = -0.3, size = 4) +
+  theme_minimal() +
+  labs(title = "Total Counts of Chemical Usage in Strawberry Harvesting",
+       x = "State",
+       y = "Total Times Chemicals Used") +
+  theme(legend.position = "none")  # Remove legend
 ```
+The frequency that California used chemicals is almost twice as the frequency of Florida.
 
 ```{r}
 # Split the California data and Florida data into two dataframes
@@ -31,37 +60,63 @@ df_flo <- df %>%
   filter(State == "FLORIDA")
 
 # Find the distinct chemicals used in California and Florida
-length(unique(df_cal$Chemical_Info))
-length(unique(df_flo$Chemical_Info))
+chem_comparison <- data.frame(
+  State = c("CALIFORNIA", "FLORIDA"),
+  Distinct_chemicals = 
+    c(length(unique(df_cal$Chemical_Info)),
+      length(unique(df_flo$Chemical_Info)))
+)
 
+
+ggplot(chem_comparison, aes(x = State, y = Distinct_chemicals, fill = State)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = Distinct_chemicals), vjust = -0.3, size = 4) +
+  theme_minimal() +
+  labs(title = "Total Types of Chemicals Used in Strawberry Harvesting",
+       x = "State",
+       y = "Total Types of Chemicals Used") +
+  theme(legend.position = "none")  # Remove legend
+```
+After finding the distinct chemicals in each state, California used 19 more types of chemicals than Florida, and there are 58 types of chemicals used in California but not in Florida:
+```{r}
 # Find out chemicals used by California but not used by Florida
 diff_chem1 <- setdiff(unique(df_cal$Chemical_Info), unique(df_flo$Chemical_Info))
 print(diff_chem1)
+```
 
+on the other hand, there are 39 types of chemicals used in Florida but not in California:
+```{r}
 diff_chem2 <- setdiff(unique(df_flo$Chemical_Info), unique(df_cal$Chemical_Info))
 print(diff_chem2)
 ```
-After finding the distinct chemicals in each state, California used 19 more types of chemicals than Florida, and there are 58 types of chemicals used in California but not in Florida, on the other hand, there are 39 types of chemicals used in Florida but not in California. We can first explore those 58 chemicals used only in California:
+
+We can first explore those 58 chemicals used only in California:
 ```{r}
 # Select records with those 58 chemicals
 df_chem_cal <- df_cal %>%
   filter(Chemical_Info %in% diff_chem1)
 
 # Create a new column to record the frequency of each chemical used
-chem_freq <- df_chem_cal %>%
-  count(Chemical_Info) %>%
-  arrange(desc(n))
+chem_measure <- df_chem_cal %>%
+  group_by(Measurement) %>%
+  filter(Measurement == "MEASURED IN LB")
 
-# Plot the top 10 chemicals used in California
-ggplot(chem_freq[1: 10,], aes(x=reorder(Chemical_Info, n), y=n))+
+# Plot the top chemicals used in California
+top_chem <- chem_measure %>%
+  filter(!is.na(Value)) %>%
+  group_by(Chemical_Info, Domain) %>%
+  summarise(Value = sum(Value, na.rm = TRUE)) %>%
+  arrange(desc(Value))
+
+ggplot(top_chem, aes(x=reorder(Chemical_Info, Value), y=Value))+
   geom_bar(stat = "identity")+
   theme_minimal()+
   coord_flip()+
   labs(x = "Chemical", y = "Frequency", 
-       title = "Top 10 Chemicals Used Only in California")+
+       title = "Top Chemicals Used in LB Only in California")+
   theme(plot.title.position = "plot")
 ```
-Plot above shows the top 10 most used chemicals in strawberry harvesting, we can further explore the properties of those 10 chemicals:
+Plot above shows the most used chemicals in LB in strawberry harvesting, we can further explore the properties of those chemicals:
 ```{r, message=FALSE, warning=FALSE}
 # Find the index of GHS classification
 GHS_searcher<-function(result_json_object){
@@ -101,8 +156,8 @@ hazards_retriever<-function(index,result_json_object){
   return(output_list[!is.na(output_list)])
 }
 
-# Find the chemical information for the top 10 chemicals
-chem_vec <- chem_freq[1: 10, "Chemical_Info"]
+# Find the chemical information for the top chemicals
+chem_vec <- top_chem$Chemical_Info
 access_hazard <- function(chemical){
   results <- list()
   for (chem in chemical){
@@ -138,13 +193,15 @@ hazards_df %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"),
                 full_width = FALSE,
                 position = "left",
-                font_size = 12) %>%
+                font_size = 10,  # Reduced font size
+                latex_options = c("scale_down")) %>%  # Added scale_down option
   column_spec(1, bold = TRUE) %>%
   row_spec(0, bold = TRUE, color = "white", background = "#4E79A7")
-```
-Through the chemical information presented in the above table, four out of the top ten chemicals have harmful effect on the environment. Especially for Fenbutatin oxide, which can be fatal if inhaled and cause serious organ damage. Also, most of those chemicals are very toxic to aquatic life, which will harm the sustainable development of the environment. Thus, the suggestion to related authority is to decrease the usage of those four chemicals in growing strawberry, especially for fenbutatin-oxide and acequinocyl. Although they can be used as pesticide, they do more harm to the environment and humans.
 
-Now, we can further analyze the top 10 chemicals used in strawberry growing in Florida:
+```
+Through the chemical information presented in the above table, three out of the top five chemicals have harmful effect on the environment. Especially for QUINOLINE, which have a lot of harzardous information, especially causing damage to organs and toxic in contact. Also, most of those chemicals are very toxic to aquatic life, which will harm the sustainable development of the environment. Additionally, QUINOLINE belongs to fungicide group, iron phosphate belongs to other group, and PYRIPROXYFEN belongs to insecticide group. Thus, the suggestion to related authority is to decrease the usage of those three chemicals in growing strawberry. Although they can be used as pesticide and fungicide, they do more harm to the environment and humans.
+
+Now, we can further analyze the top chemicals used in strawberry growing in Florida:
 ```{r}
 # Select records with Florida only chemicals
 df_chem_flo <- df_flo %>%
@@ -180,9 +237,9 @@ hazards_df_flo <- do.call(rbind, lapply(hazard_info_flo, function(x) {
 hazards_df_flo %>%
   knitr::kable(escape = FALSE) %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"),
-                full_width = FALSE,
+                full_width = F,
                 position = "left",
-                font_size = 12) %>%
+                font_size = 8) %>%
   column_spec(1, bold = TRUE) %>%
   row_spec(0, bold = TRUE, color = "white", background = "#4E79A7")
 ```
