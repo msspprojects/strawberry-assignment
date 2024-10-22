@@ -2,7 +2,9 @@
 title: "Chemical EDA"
 author: "Suheng Yao"
 date: "2024-10-19"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -12,6 +14,7 @@ library(ggplot2)
 library(tidyverse)
 library(PubChemR)
 library(kableExtra)
+library(flextable)
 ```
 
 ```{r}
@@ -91,7 +94,7 @@ print(diff_chem2)
 ```
 
 We can first explore those 58 chemicals used only in California:
-```{r}
+```{r, warning=FALSE, message=FALSE}
 # Select records with those 58 chemicals
 df_chem_cal <- df_cal %>%
   filter(Chemical_Info %in% diff_chem1)
@@ -112,7 +115,7 @@ ggplot(top_chem, aes(x=reorder(Chemical_Info, Value), y=Value))+
   geom_bar(stat = "identity")+
   theme_minimal()+
   coord_flip()+
-  labs(x = "Chemical", y = "Frequency", 
+  labs(x = "Chemical", y = "Usage", 
        title = "Top Chemicals Used in LB Only in California")+
   theme(plot.title.position = "plot")
 ```
@@ -188,16 +191,13 @@ hazards_df <- do.call(rbind, lapply(hazard_info, function(x) {
   )
 }))
 
-hazards_df %>%
-  knitr::kable(escape = FALSE) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"),
-                full_width = FALSE,
-                position = "left",
-                font_size = 10,  # Reduced font size
-                latex_options = c("scale_down")) %>%  # Added scale_down option
-  column_spec(1, bold = TRUE) %>%
-  row_spec(0, bold = TRUE, color = "white", background = "#4E79A7")
 
+hazards_df %>%
+  flextable() %>%
+  theme_vanilla() %>%
+  fontsize(size = 10) %>%
+  fit_to_width(max_width = 8) %>% 
+  align(align = "left", part = "all")
 ```
 Through the chemical information presented in the above table, three out of the top five chemicals have harmful effect on the environment. Especially for QUINOLINE, which have a lot of harzardous information, especially causing damage to organs and toxic in contact. Also, most of those chemicals are very toxic to aquatic life, which will harm the sustainable development of the environment. Additionally, QUINOLINE belongs to fungicide group, iron phosphate belongs to other group, and PYRIPROXYFEN belongs to insecticide group. Thus, the suggestion to related authority is to decrease the usage of those three chemicals in growing strawberry. Although they can be used as pesticide and fungicide, they do more harm to the environment and humans.
 
@@ -218,7 +218,7 @@ ggplot(chem_freq_flo[1: 10,], aes(x=reorder(Chemical_Info, n), y=n))+
   theme_minimal()+
   coord_flip()+
   labs(x = "Chemical", y = "Frequency", 
-       title = "Top 10 Chemicals Used Only in Florida")+
+       title = "Top 10 Counts of Chemicals Used Only in Florida")+
   theme(plot.title.position = "plot")
 ```
 ```{r, message=FALSE, warning=FALSE}
@@ -235,14 +235,14 @@ hazards_df_flo <- do.call(rbind, lapply(hazard_info_flo, function(x) {
 }))
 
 hazards_df_flo %>%
-  knitr::kable(escape = FALSE) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"),
-                full_width = F,
-                position = "left",
-                font_size = 8) %>%
-  column_spec(1, bold = TRUE) %>%
-  row_spec(0, bold = TRUE, color = "white", background = "#4E79A7")
+  flextable() %>%
+  theme_vanilla() %>%
+  fontsize(size = 10) %>%
+  width(j = "chemical_name", width = 2.5) %>%  # Set width for first column
+  width(j = "hazards", width = 5) %>%  # Set width for second column
+  align(align = "left", part = "all") %>%
+  set_table_properties(layout = "autofit")
 ```
 Through the table shown above, three out of top ten chemicals used only in Florida have hazard information. The most toxic chemical is the beta-cyfluthrin, which can be fatal if swallowed and inhaled, and it also has toxic effects to aquatic lives, which is bad for the environment.
 
-In summary, by comparing the chemicals used in California and Florida, California used more types of chemicals than Florida, also, the maximum used times of the most used chemicals in each state were also higher for California(20 vs 15). However, California and Florida both used chemicals that are toxic to the aquatic lives and environment when growing strawberry, and it is important to suggest to the goverment to restrict the amount of harmful chemicals used in insecticides and pesticides, and they should be changed to more environmental friendly substitutes.
+In summary, by comparing the chemicals used in California and Florida, California used more types of chemicals than Florida, also, the counts of chemicals used in each state were also higher for California, which is almost two times higher compared to Florida. However, California and Florida both used chemicals that are toxic to the aquatic lives and environment when growing strawberry, and it is important to suggest to the goverment to restrict the amount of harmful chemicals used in insecticides and pesticides, and they should be changed to more environmental friendly substitutes.
