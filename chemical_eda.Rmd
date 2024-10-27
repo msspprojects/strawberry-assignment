@@ -32,12 +32,12 @@ print(states_with_chemical_info)
 ```
 Only California and Florida used chemicals when growing strawberries, we can filter out only those two states and compare the frequency of chemical used:
 ```{r, warning=FALSE}
-df <- df %>%
+df1 <- df %>%
   select(-1) %>%
   filter(State == "CALIFORNIA" | State == "FLORIDA")
 
 # Draw a bar plot comparing the frequency
-chem_state <- df %>%
+chem_state <- df1 %>%
   group_by(State) %>%
   summarise(Total_obs=n()) %>%
   arrange(desc(Total_obs))
@@ -93,14 +93,11 @@ diff_chem2 <- setdiff(unique(df_flo$Chemical_Info), unique(df_cal$Chemical_Info)
 print(diff_chem2)
 ```
 
-We can first explore those 58 chemicals used only in California:
+We can first explore top chemicals used in California:
 ```{r, warning=FALSE, message=FALSE}
-# Select records with those 58 chemicals
-df_chem_cal <- df_cal %>%
-  filter(Chemical_Info %in% diff_chem1)
 
 # Create a new column to record the frequency of each chemical used
-chem_measure <- df_chem_cal %>%
+chem_measure <- df_cal %>%
   group_by(Measurement) %>%
   filter(Measurement == "MEASURED IN LB")
 
@@ -111,14 +108,24 @@ top_chem <- chem_measure %>%
   summarise(Value = sum(Value, na.rm = TRUE)) %>%
   arrange(desc(Value))
 
-ggplot(top_chem, aes(x=reorder(Chemical_Info, Value), y=Value))+
+ggplot(top_chem[1:10,], 
+       aes(x=reorder(Chemical_Info, Value), y=Value))+
   geom_bar(stat = "identity")+
   theme_minimal()+
   coord_flip()+
   labs(x = "Chemical", y = "Usage", 
-       title = "Top Chemicals Used in LB Only in California")+
+       title = "Top 10 Chemicals Measured in LB in California")+
   theme(plot.title.position = "plot")
 ```
+```{r}
+domain_chem <- chem_measure %>%
+  filter(!is.na(Value)) %>%
+  group_by(Domain) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+print(domain_chem)
+```
+
 Plot above shows the most used chemicals in LB in strawberry harvesting, we can further explore the properties of those chemicals:
 ```{r, message=FALSE, warning=FALSE}
 # Find the index of GHS classification
@@ -160,7 +167,6 @@ hazards_retriever<-function(index,result_json_object){
 }
 
 # Find the chemical information for the top chemicals
-chem_vec <- top_chem$Chemical_Info
 access_hazard <- function(chemical){
   results <- list()
   for (chem in chemical){
@@ -182,6 +188,10 @@ access_hazard <- function(chemical){
 }
   
 
+
+```
+```{r, message=FALSE, warning=FALSE}
+chem_vec <- top_chem[1:10,]$Chemical_Info
 hazard_info <- access_hazard(chem_vec)
 hazards_df <- do.call(rbind, lapply(hazard_info, function(x) {
   data.frame(
@@ -196,34 +206,44 @@ hazards_df %>%
   flextable() %>%
   theme_vanilla() %>%
   fontsize(size = 10) %>%
-  fit_to_width(max_width = 8) %>% 
-  align(align = "left", part = "all")
+  width(j = "chemical_name", width = 2.5) %>%  # Set width for first column
+  width(j = "hazards", width = 5) %>%  # Set width for second column
+  align(align = "left", part = "all") %>%
+  set_table_properties(layout = "autofit")
 ```
-Through the chemical information presented in the above table, three out of the top five chemicals have harmful effect on the environment. Especially for QUINOLINE, which have a lot of harzardous information, especially causing damage to organs and toxic in contact. Also, most of those chemicals are very toxic to aquatic life, which will harm the sustainable development of the environment. Additionally, QUINOLINE belongs to fungicide group, iron phosphate belongs to other group, and PYRIPROXYFEN belongs to insecticide group. Thus, the suggestion to related authority is to decrease the usage of those three chemicals in growing strawberry. Although they can be used as pesticide and fungicide, they do more harm to the environment and humans.
+
+Through the chemical information presented in the above table, seven out of the top ten chemicals have hazards information. Especially for QUINOLINE, which can cause damage to organs and toxic in contact. Also, most of those chemicals are very toxic to aquatic life, which will harm the sustainable development of the environment. Additionally, most of the top used chemicals belong to insecticide group, and this suggests that many of the chemicals used in California are used for pest control. This phenomenon could be the result of large production of strawberry and warm weather in California.
 
 Now, we can further analyze the top chemicals used in strawberry growing in Florida:
 ```{r}
 # Select records with Florida only chemicals
-df_chem_flo <- df_flo %>%
-  filter(Chemical_Info %in% diff_chem2)
+df_measure_lb <- df_flo %>%
+  filter(Measurement=="MEASURED IN LB") %>%
+  filter(!is.na(Value)) %>%
+  filter(Chemical_Info != "TOTAL")
 
+print(unique(df_measure_lb$Chemical_Info))
+```
+Ignoring "Total" variable, here are the eight chemicals that are used most in Florida when measurement in LB.
+
+```{r, message=FALSE}
 # Create a new column to record the frequency of each chemical used
-chem_freq_flo <- df_chem_flo %>%
-  count(Chemical_Info) %>%
-  arrange(desc(n))
+top_chem <- df_measure_lb %>%
+  group_by(Chemical_Info, Domain) %>%
+  summarise(Value = sum(Value, na.rm = TRUE)) %>%
+  arrange(desc(Value))
 
 # Plot the top 10 chemicals used in California
-ggplot(chem_freq_flo[1: 10,], aes(x=reorder(Chemical_Info, n), y=n))+
+ggplot(top_chem, aes(x=reorder(Chemical_Info, Value), y=Value))+
   geom_bar(stat = "identity")+
   theme_minimal()+
   coord_flip()+
-  labs(x = "Chemical", y = "Frequency", 
-       title = "Top 10 Counts of Chemicals Used Only in Florida")+
+  labs(x = "Chemicals", y = "Measured in LB", 
+       title = "Top Chemicals Used in Florida")+
   theme(plot.title.position = "plot")
 ```
 ```{r, message=FALSE, warning=FALSE}
-chem_vec_flo <- c("INDOLEBUTYRIC ACID", 
-                  "BETA-CYFLUTHRIN", "CHLOROTHALONIL")
+chem_vec_flo <- top_chem$Chemical_Info
 hazard_info_flo <- access_hazard(chem_vec_flo)
 
 hazards_df_flo <- do.call(rbind, lapply(hazard_info_flo, function(x) {
@@ -243,6 +263,6 @@ hazards_df_flo %>%
   align(align = "left", part = "all") %>%
   set_table_properties(layout = "autofit")
 ```
-Through the table shown above, three out of top ten chemicals used only in Florida have hazard information. The most toxic chemical is the beta-cyfluthrin, which can be fatal if swallowed and inhaled, and it also has toxic effects to aquatic lives, which is bad for the environment.
+Through the table shown above, five out of top eight chemicals used in Florida have hazard information. The most toxic chemical is the azoxystrobin, which can be toxic if inhaled, and it also causes damage to organs with single exposure. Additionally, it has toxic effects to aquatic lives, which is bad for the environment. Also, 7 out of top 8 chemicals used are insecticide, this may relate to the location of Florida, which is already in the tropical area. The warmer weather brings more insects, so the farmers there need to use more insecticide for pest control. The principal pests on strawberry in Florida are the twospotted spider mite and lepidopterous larvae.
 
-In summary, by comparing the chemicals used in California and Florida, California used more types of chemicals than Florida, also, the counts of chemicals used in each state were also higher for California, which is almost two times higher compared to Florida. However, California and Florida both used chemicals that are toxic to the aquatic lives and environment when growing strawberry, and it is important to suggest to the goverment to restrict the amount of harmful chemicals used in insecticides and pesticides, and they should be changed to more environmental friendly substitutes.
+In summary, by comparing the chemicals used in California and Florida, California used more types of chemicals than Florida, also, the counts of chemicals used in growing strawberry were also higher for California, which is almost two times of Florida's value. However, California and Florida both used chemicals in insecticide that are toxic to the aquatic lives, environment and human's health, and it is important to suggest to the goverment to restrict the amount of harmful chemicals used in insecticides and pesticides, and they should be changed to more environmental friendly substitutes.
