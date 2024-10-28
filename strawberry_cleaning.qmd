@@ -70,7 +70,7 @@ Since the "State ANSI", "County ANSI", "Value" and "CV (%)" are all numeric valu
 # convert two columns to numeric
 strawberry$`State ANSI` <- as.numeric(strawberry$`State ANSI`)
 strawberry$`County ANSI` <- as.numeric(strawberry$`County ANSI`)
-strawberry$Value <- as.numeric(strawberry$Value)
+strawberry$Value <- as.numeric(str_replace(strawberry$Value, ",", ""))
 strawberry <- strawberry %>%
   mutate(`CV (%)` = case_when(
     `CV (%)` == "(H)" ~ 99.5,
