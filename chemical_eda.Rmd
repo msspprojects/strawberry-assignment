@@ -104,6 +104,7 @@ ggplot(df1, aes(x=State, y=Value)) +
   labs(title="Distribution of Chemical Usage Measured in LB in California and Florida")
   
 ```
+
 From this plot, when measurement of chemicals are in LB, California have more outliers than Florida, meaning that the distribution of chemical usage in California is more spread out, and Florida's distribution is more concentrated. Also, both California and Florida have concentrated values at bottom, meaning that most of chemicals usage are quite low.
 
 We can first explore top chemicals used in California:
@@ -289,4 +290,57 @@ hazards_df_flo %>%
 ```
 Through the table shown above, all the chemicals used in Florida have hazard information. Especially for thiram, which has 19 kinds of hazard information and can cause irritation and allergic reaction to skin, and it also causes damage to organs with single exposure. Additionally, it has toxic effects to aquatic lives, which is bad for the environment. Also, all of the top 5 chemicals used are fungicide, this may relate to the location of Florida, which is already in the tropical area. The warmer weather brings more fungi, so the farmers there need to use more fungicide for fungi or spores control.
 
-In summary, by comparing the chemicals used in California and Florida, California used more types of chemicals than Florida, also, the counts of chemicals used in growing strawberry were also higher for California, which is almost two times of Florida's value. However, California and Florida both used chemicals in insecticide that are toxic to the aquatic lives, environment and human's health, and it is important to suggest to the goverment to restrict the amount of harmful chemicals used in insecticides and pesticides, and they should be changed to more environmental friendly substitutes.
+After analyzing the chemical measurement in LB, we can compare it with another type of measurement "measurement in LB/acres/year" to see the difference between top chemicals under this type of measurement:
+```{r, warning=FALSE, message=FALSE}
+df1 <- df %>%
+  select(-1) %>%
+  filter(State == "CALIFORNIA" | State == "FLORIDA") %>%
+  filter((Measurement == "MEASURED IN LB") | 
+  (Measurement == "MEASURED IN LB / ACRE / YEAR")) %>%
+  filter(!is.na(Value))
+
+chem_lb <- df1 %>%
+  group_by(Measurement) %>%
+  filter(Measurement == "MEASURED IN LB") %>%
+  filter(Chemical_Info != "TOTAL")
+
+chem_lb_acre <- df1 %>%
+  group_by(Measurement) %>%
+  filter(Measurement == "MEASURED IN LB / ACRE / YEAR") %>%
+  filter(Chemical_Info != "TOTAL")
+
+# Plot the top chemicals used in California
+top_chem_lb <- chem_lb %>%
+  filter(!is.na(Chemical_Info)) %>%
+  group_by(Chemical_Info, Domain) %>%
+  summarise(Value = sum(Value, na.rm = TRUE)) %>%
+  arrange(desc(Value))
+
+top_chem_lb_acre <- chem_lb_acre %>%
+  filter(!is.na(Chemical_Info)) %>%
+  group_by(Chemical_Info, Domain) %>%
+  summarise(Value = sum(Value, na.rm = TRUE)) %>%
+  arrange(desc(Value))
+
+ggplot(top_chem_lb[1:5,], 
+       aes(x=reorder(Chemical_Info, Value), y=Value))+
+  geom_bar(stat = "identity")+
+  theme_minimal()+
+  coord_flip()+
+  labs(x = "Chemical", y = "Usage", 
+       title = "Top 10 Chemicals Measured in LB for California and Florida")+
+  theme(plot.title.position = "plot")
+
+ggplot(top_chem_lb_acre[1:5,], 
+       aes(x=reorder(Chemical_Info, Value), y=Value))+
+  geom_bar(stat = "identity")+
+  theme_minimal()+
+  coord_flip()+
+  labs(x = "Chemical", y = "Usage", 
+       title = "Top 10 Chemicals Measured in LB/acre/year for California and Florida")+
+  theme(plot.title.position = "plot")
+```
+
+From the comparison of those two plots, the usage of dichloropropene are consistent under those two measurements, which means that the total usage in LB and usage per acre for dichloropropene are all very high. However, it is a different story for captan. Captan is the top chemical in total usage in LB but only the fifth highest in usage per acre, which means that the total area of using captan may be large, but the usage per acre may be lower. Also, the top chemical in usage per acre, chloropicrin, does not appear in the top 5 chemicals in total usage in LB, and this could be related to that the area of using chloropicrin is small. 
+
+In summary, on one hand, by comparing the chemicals used in California and Florida, California used more types of chemicals than Florida, also, the counts of chemicals used in growing strawberry were also higher for California, which is almost two times of Florida's value. Additionally, for chemical measurement in LB, California has more outliers and more spread out than Florida, and the chemicals used in California are distributed in different groups, but Florida seems to favor chemicals in fungicide group. On the other hand, California and Florida both used chemicals that are toxic to the aquatic lives, environment and human's health, and it is important to suggest to the goverment to restrict the amount of harmful chemicals used in insecticides and fungicides, and they should be changed to more environmental friendly substitutes.
